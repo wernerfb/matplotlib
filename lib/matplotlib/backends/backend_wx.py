@@ -1055,7 +1055,7 @@ The current aspect ratio will be kept."""
 
         # Event loop handler for start/stop event loop
         if 'phoenix' in wx.PlatformInfo:
-            self.event_loop = wx.GUIEventLoop()
+            self._event_loop = wx.GUIEventLoop()
         else:
             self._event_loop = wx.EventLoop()
         self._event_loop.Run()
@@ -1703,10 +1703,20 @@ class MenuButtonWx(wx.Button):
 
     def _onMenuButton(self, evt):
         """Handle menu button pressed."""
-        x, y = self.GetPositionTuple()
-        w, h = self.GetSizeTuple()
-        self.PopupMenuXY(self._menu, x, y+h-4)
-                # When menu returned, indicate selection in button
+        
+        if 'phoenix' in wx.PlatformInfo:
+            x, y = self.GetPosition()
+            w, h = self.GetSize()
+        else:
+            x, y = self.GetPositionTuple()
+            w, h = self.GetSizeTuple()
+
+        if 'phoenix' in wx.PlatformInfo:
+            self.PopupMenu(self._menu, x, y+h-4)
+        else:
+            self.PopupMenuXY(self._menu, x, y+h-4)
+            # When menu returned, indicate selection in button
+
         evt.Skip()
 
     def _handleSelectAllAxes(self, evt):
@@ -1878,7 +1888,12 @@ class NavigationToolbar2Wx(NavigationToolbar2, wx.ToolBar):
         # Fetch the required filename and file type.
         filetypes, exts, filter_index = self.canvas._get_imagesave_wildcards()
         default_file = self.canvas.get_default_filename()
-        dlg = wx.FileDialog(self._parent, "Save to file", "", default_file,
+        if 'phoenix' in wx.PlatformInfo:
+            dlg = wx.FileDialog(self._parent, "Save to file", "", default_file,
+                            filetypes,
+                            wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
+        else:
+            dlg = wx.FileDialog(self._parent, "Save to file", "", default_file,
                             filetypes,
                             wx.SAVE|wx.OVERWRITE_PROMPT)
         dlg.SetFilterIndex(filter_index)
@@ -2016,27 +2031,60 @@ class NavigationToolbarWx(wx.ToolBar):
         # Need the following line as Windows toolbars default to 15x16
 
         self.SetToolBitmapSize(wx.Size(16,16))
-        self.AddSimpleTool(_NTB_X_PAN_LEFT, _load_bitmap('stock_left.xpm'),
-                           'Left', 'Scroll left')
-        self.AddSimpleTool(_NTB_X_PAN_RIGHT, _load_bitmap('stock_right.xpm'),
-                           'Right', 'Scroll right')
-        self.AddSimpleTool(_NTB_X_ZOOMIN, _load_bitmap('stock_zoom-in.xpm'),
-                           'Zoom in', 'Increase X axis magnification')
-        self.AddSimpleTool(_NTB_X_ZOOMOUT, _load_bitmap('stock_zoom-out.xpm'),
-                           'Zoom out', 'Decrease X axis magnification')
-        self.AddSeparator()
-        self.AddSimpleTool(_NTB_Y_PAN_UP,_load_bitmap('stock_up.xpm'),
-                           'Up', 'Scroll up')
-        self.AddSimpleTool(_NTB_Y_PAN_DOWN, _load_bitmap('stock_down.xpm'),
-                           'Down', 'Scroll down')
-        self.AddSimpleTool(_NTB_Y_ZOOMIN, _load_bitmap('stock_zoom-in.xpm'),
-                           'Zoom in', 'Increase Y axis magnification')
-        self.AddSimpleTool(_NTB_Y_ZOOMOUT, _load_bitmap('stock_zoom-out.xpm'),
-                           'Zoom out', 'Decrease Y axis magnification')
-        self.AddSeparator()
-        self.AddSimpleTool(_NTB_SAVE, _load_bitmap('stock_save_as.xpm'),
-                           'Save', 'Save plot contents as images')
-        self.AddSeparator()
+        if 'phoenix' in wx.PlatformInfo:
+            self.AddTool(_NTB_X_PAN_LEFT, 'Left', 
+                         _load_bitmap('stock_left.xpm'),
+                         'Scroll left')
+            self.AddTool(_NTB_X_PAN_RIGHT, 'Right', 
+                         _load_bitmap('stock_right.xpm'),
+                         'Scroll right')
+            self.AddTool(_NTB_X_ZOOMIN, 'Zoom in', 
+                         _load_bitmap('stock_zoom-in.xpm'),
+                         'Increase X axis magnification')
+            self.AddTool(_NTB_X_ZOOMOUT, 'Zoom out', 
+                         _load_bitmap('stock_zoom-out.xpm'),
+                         'Decrease X axis magnification')
+            self.AddSeparator()
+            self.AddTool(_NTB_Y_PAN_UP, 'Up',
+                         _load_bitmap('stock_up.xpm'),
+                         'Scroll up')
+            self.AddTool(_NTB_Y_PAN_DOWN, 'Down', 
+                         _load_bitmap('stock_down.xpm'),
+                         'Scroll down')
+            self.AddTool(_NTB_Y_ZOOMIN, 'Zoom in', 
+                         _load_bitmap('stock_zoom-in.xpm'),
+                         'Increase Y axis magnification')
+            self.AddTool(_NTB_Y_ZOOMOUT, 'Zoom out', 
+                         _load_bitmap('stock_zoom-out.xpm'),
+                         'Decrease Y axis magnification')
+            self.AddSeparator()
+            self.AddTool(_NTB_SAVE, 'Save', 
+                         _load_bitmap('stock_save_as.xpm'),
+                         'Save plot contents as images')
+            self.AddSeparator()
+            
+        else:
+            self.AddSimpleTool(_NTB_X_PAN_LEFT, _load_bitmap('stock_left.xpm'),
+                               'Left', 'Scroll left')
+            self.AddSimpleTool(_NTB_X_PAN_RIGHT, _load_bitmap('stock_right.xpm'),
+                               'Right', 'Scroll right')
+            self.AddSimpleTool(_NTB_X_ZOOMIN, _load_bitmap('stock_zoom-in.xpm'),
+                               'Zoom in', 'Increase X axis magnification')
+            self.AddSimpleTool(_NTB_X_ZOOMOUT, _load_bitmap('stock_zoom-out.xpm'),
+                               'Zoom out', 'Decrease X axis magnification')
+            self.AddSeparator()
+            self.AddSimpleTool(_NTB_Y_PAN_UP,_load_bitmap('stock_up.xpm'),
+                               'Up', 'Scroll up')
+            self.AddSimpleTool(_NTB_Y_PAN_DOWN, _load_bitmap('stock_down.xpm'),
+                               'Down', 'Scroll down')
+            self.AddSimpleTool(_NTB_Y_ZOOMIN, _load_bitmap('stock_zoom-in.xpm'),
+                               'Zoom in', 'Increase Y axis magnification')
+            self.AddSimpleTool(_NTB_Y_ZOOMOUT, _load_bitmap('stock_zoom-out.xpm'),
+                               'Zoom out', 'Decrease Y axis magnification')
+            self.AddSeparator()
+            self.AddSimpleTool(_NTB_SAVE, _load_bitmap('stock_save_as.xpm'),
+                               'Save', 'Save plot contents as images')
+            self.AddSeparator()
 
         bind(self, wx.EVT_TOOL, self._onLeftScroll, id=_NTB_X_PAN_LEFT)
         bind(self, wx.EVT_TOOL, self._onRightScroll, id=_NTB_X_PAN_RIGHT)
