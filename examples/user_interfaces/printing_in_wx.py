@@ -29,7 +29,15 @@ last modified: 12-Nov-2004
 license:  use it any way you want
 """
 
+# Used to guarantee to use at least Wx2.8
+import wxversion
+wxversion.ensureMinimal('2.8')
+#wxversion.select('2.8')
+#wxversion.select('2.9.5') # 2.9.x classic
+#wxversion.select('2.9.6-msw-phoenix') # 2.9.x phoenix
 import wx
+print(wx.VERSION_STRING)
+
 import os
 import matplotlib
 
@@ -81,16 +89,22 @@ class PlotFrame(wx.Frame):
         self.Fit()
         self.Build_Menus()
         self.Plot_Data()
+        
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        
+    def OnPaint(self, event):
+        self.canvas.draw()
+        event.Skip()
 
     def Build_Menus(self):
         """ build menus """
-        MENU_EXIT  = wx.NewId()
+        MENU_EXIT  = wx.ID_EXIT
         MENU_SAVE  = wx.NewId()
         MENU_PRINT = wx.NewId()
         MENU_PSETUP= wx.NewId()
         MENU_PREVIEW=wx.NewId()
         MENU_CLIPB  =wx.NewId()
-        MENU_HELP   =wx.NewId()
+        MENU_HELP   =wx.ID_HELP
 
         menuBar = wx.MenuBar()
 
@@ -159,9 +173,14 @@ class PlotFrame(wx.Frame):
 
         thisdir  = os.getcwd()
 
+        if 'phoenix' in wx.PlatformInfo:
+            fdStyle = wx.FD_SAVE
+        else:
+            fdStyle = wx.SAVE
+
         dlg = wx.FileDialog(self, message='Save Plot Figure as...',
                             defaultDir = thisdir, defaultFile='plot.png',
-                            wildcard=file_choices, style=wx.SAVE)
+                            wildcard=file_choices, style=fdStyle)
 
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
@@ -182,7 +201,7 @@ class PlotFrame(wx.Frame):
 
 
 if __name__ == '__main__':
-    app = wx.PySimpleApp()
+    app = wx.App()
     fig = PlotFrame()
     fig.Show(True)
     app.MainLoop()

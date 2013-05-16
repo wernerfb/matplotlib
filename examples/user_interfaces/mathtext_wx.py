@@ -2,6 +2,14 @@
 Demonstrates how to convert mathtext to a wx.Bitmap for display in various
 controls on wxPython.
 """
+# Used to guarantee to use at least Wx2.8
+import wxversion
+wxversion.ensureMinimal('2.8')
+#wxversion.select('2.8')
+#wxversion.select('2.9.5') # 2.9.x classic
+#wxversion.select('2.9.6-msw-phoenix') # 2.9.x phoenix
+import wx
+print(wx.VERSION_STRING)
 
 import matplotlib
 matplotlib.use("WxAgg")
@@ -9,8 +17,6 @@ from numpy import arange, sin, pi, cos, log
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
 from matplotlib.figure import Figure
-
-import wx
 
 IS_GTK = 'wxGTK' in wx.PlatformInfo
 IS_WIN = 'wxMSW' in wx.PlatformInfo
@@ -22,9 +28,14 @@ from matplotlib.mathtext import MathTextParser
 mathtext_parser = MathTextParser("Bitmap")
 def mathtext_to_wxbitmap(s):
     ftimage, depth = mathtext_parser.parse(s, 150)
-    return wx.BitmapFromBufferRGBA(
-        ftimage.get_width(), ftimage.get_height(),
-        ftimage.as_rgba_str())
+    if 'phoenix' in wx.PlatformInfo:
+        return wx.Bitmap.FromBufferRGBA(
+            ftimage.get_width(), ftimage.get_height(),
+            ftimage.as_rgba_str())
+    else:
+        return wx.BitmapFromBufferRGBA(
+            ftimage.get_width(), ftimage.get_height(),
+            ftimage.as_rgba_str())
 ############################################################
 
 functions = [
@@ -37,7 +48,10 @@ functions = [
 class CanvasFrame(wx.Frame):
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, -1, title, size=(550, 350))
-        self.SetBackgroundColour(wx.NamedColour("WHITE"))
+        if 'phoenix' in wx.PlatformInfo:
+            self.SetBackgroundColour(wx.Colour("WHITE"))
+        else:
+            self.SetBackgroundColour(wx.NamedColour("WHITE"))
 
         self.figure = Figure()
         self.axes = self.figure.add_subplot(111)
@@ -62,9 +76,12 @@ class CanvasFrame(wx.Frame):
             menu = wx.Menu()
             for i, (mt, func) in enumerate(functions):
                 bm = mathtext_to_wxbitmap(mt)
-                item = wx.MenuItem(menu, 1000 + i, "")
+                item = wx.MenuItem(menu, 1000+i, ("Function: %s" % func))
                 item.SetBitmap(bm)
-                menu.AppendItem(item)
+                if 'phoenix' in wx.PlatformInfo:
+                    menu.Append(item)
+                else:
+                    menu.AppendItem(item)
                 self.Bind(wx.EVT_MENU, self.OnChangePlot, item)
             menuBar.Append(menu, "&Functions")
 
@@ -73,6 +90,12 @@ class CanvasFrame(wx.Frame):
         self.SetSizer(self.sizer)
         self.Fit()
 
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        
+    def OnPaint(self, event):
+        self.canvas.draw()
+        event.Skip()
+        
     def add_buttonbar(self):
         self.button_bar = wx.Panel(self)
         self.button_bar_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -93,14 +116,15 @@ class CanvasFrame(wx.Frame):
         if IS_MAC:
             self.SetToolBar(self.toolbar)
         else:
-            tw, th = self.toolbar.GetSizeTuple()
-            fw, fh = self.canvas.GetSizeTuple()
+            if 'phoenix' in wx.PlatformInfo:
+                tw, th = self.toolbar.GetSize()
+                fw, fh = self.canvas.GetSize()
+            else:
+                tw, th = self.toolbar.GetSizeTuple()
+                fw, fh = self.canvas.GetSizeTuple()
             self.toolbar.SetSize(wx.Size(fw, th))
             self.sizer.Add(self.toolbar, 0, wx.LEFT | wx.EXPAND)
         self.toolbar.update()
-
-    def OnPaint(self, event):
-        self.canvas.draw()
 
     def OnChangePlot(self, event):
         self.change_plot(event.GetId() - 1000)

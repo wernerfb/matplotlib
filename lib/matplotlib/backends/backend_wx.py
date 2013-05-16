@@ -847,7 +847,10 @@ The current aspect ratio will be kept."""
         sizerAll.Add(wx.StaticText(dlg,-1,dmsg),
                     0, wx.ALL | wx.EXPAND, 5)
 
-        sizer = wx.FlexGridSizer(0,3)
+        if 'phoenix' in wx.PlatformInfo:
+            sizer = wx.FlexGridSizer(rows=0, cols=3, hgap=0, vgap=0)
+        else:
+            sizer = wx.FlexGridSizer(0,3)
         sizerAll.Add(sizer, 0, wx.ALL | wx.EXPAND, 5)
 
         sizer.Add(wx.StaticText(dlg,-1,'Figure Width'),
@@ -926,7 +929,10 @@ The current aspect ratio will be kept."""
         po2  = PrintoutWx(self, width=self.printer_width,
                           margin=self.printer_margin)
         self.preview = wx.PrintPreview(po1,po2,self.printerData)
-        if not self.preview.Ok():  print("error with preview")
+        if 'phoenix' in wx.PlatformInfo:
+            if not self.preview.IsOk():  print("error with preview")
+        else:
+            if not self.preview.Ok():  print("error with preview")
 
         self.preview.SetZoom(50)
         frameInst= self
@@ -1870,32 +1876,39 @@ class NavigationToolbar2Wx(NavigationToolbar2, wx.ToolBar):
         frame = wx.Frame(None, -1, "Configure subplots")
 
         toolfig = Figure((6,3))
-        canvas = self.get_canvas(frame, toolfig)
+        self.canvas = self.get_canvas(frame, toolfig)
 
         # Create a figure manager to manage things
-        figmgr = FigureManager(canvas, 1, frame)
+        figmgr = FigureManager(self.canvas, 1, frame)
 
         # Now put all into a sizer
         sizer = wx.BoxSizer(wx.VERTICAL)
         # This way of adding to sizer allows resizing
-        sizer.Add(canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
+        sizer.Add(self.canvas, 1, wx.LEFT|wx.TOP|wx.GROW)
         frame.SetSizer(sizer)
         frame.Fit()
         tool = SubplotTool(self.canvas.figure, toolfig)
+        frame.Bind(wx.EVT_PAINT, self.OnPaint)
+
         frame.Show()
+        
+    def OnPaint(self, event):
+        self.canvas.draw()
+        event.Skip()
 
     def save_figure(self, *args):
         # Fetch the required filename and file type.
         filetypes, exts, filter_index = self.canvas._get_imagesave_wildcards()
         default_file = self.canvas.get_default_filename()
         if 'phoenix' in wx.PlatformInfo:
-            dlg = wx.FileDialog(self._parent, "Save to file", "", default_file,
-                            filetypes,
-                            wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
+            fdStyle = wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT
         else:
-            dlg = wx.FileDialog(self._parent, "Save to file", "", default_file,
+            fdStyle = wx.SAVE|wx.OVERWRITE_PROMPT
+
+        dlg = wx.FileDialog(self._parent, "Save to file", "", default_file,
                             filetypes,
-                            wx.SAVE|wx.OVERWRITE_PROMPT)
+                            fdStyle)
+
         dlg.SetFilterIndex(filter_index)
         if dlg.ShowModal() == wx.ID_OK:
             dirname  = dlg.GetDirectory()
@@ -2268,7 +2281,10 @@ class PrintoutWx(wx.Printout):
         (ppw,pph) = self.GetPPIPrinter()      # printer's pixels per in
         (pgw,pgh) = self.GetPageSizePixels()  # page size in pixels
         (dcw,dch) = dc.GetSize()
-        (grw,grh) = self.canvas.GetSizeTuple()
+        if 'phoenix' in wx.PlatformInfo:
+            (grw,grh) = self.canvas.GetSize()
+        else:
+            (grw,grh) = self.canvas.GetSizeTuple()
 
         # save current figure dpi resolution and bg color,
         # so that we can temporarily set them to the dpi of
